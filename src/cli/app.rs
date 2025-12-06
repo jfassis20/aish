@@ -6,7 +6,7 @@ use crate::ai::llm::{ChatMessage, LlmClient};
 use crate::config::{Config, ConfigManager};
 use crate::ops::{FsOperations, ShellExecutor};
 use crate::security::SecurityValidator;
-use crate::ui::{format_error, render_markdown};
+use crate::ui::render_markdown;
 
 pub struct App {
     llm_client: LlmClient,
@@ -89,13 +89,7 @@ impl App {
             // Update system message with current CWD before each request
             self.update_system_message_cwd()?;
 
-            let response = match self.llm_client.chat(self.messages.clone()).await {
-                Ok(r) => r,
-                Err(e) => {
-                    format_error(&e);
-                    return Err(e);
-                }
-            };
+            let response = self.llm_client.chat(self.messages.clone()).await?;
 
             // Always add the response to messages first
             self.messages.push(response.clone());
@@ -170,6 +164,14 @@ impl App {
                 println!("{}", "→ LLM Response:".bright_cyan());
                 println!();
                 render_markdown(content);
+                println!();
+                break;
+            } else {
+                // No tool_calls and no content - this shouldn't happen, but handle it gracefully
+                println!();
+                println!("{}", "→ LLM Response:".bright_cyan());
+                println!();
+                println!("{}", "No response content available.".bright_yellow());
                 println!();
                 break;
             }
