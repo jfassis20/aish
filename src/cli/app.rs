@@ -46,6 +46,39 @@ impl App {
         })
     }
 
+    pub fn new_empty(config: Config, accept_all: bool) -> Result<Self> {
+        let config_manager = ConfigManager::new()?;
+        let api_key = config_manager.load_api_key()?;
+        let llm_client = LlmClient::new(&config, api_key);
+        let security = SecurityValidator::new(config.clone())?;
+
+        let system_message = ChatMessage {
+            role: "system".to_string(),
+            content: Some("You are an AI shell assistant. Help the user with their tasks by executing shell commands and file operations. Always confirm before executing potentially destructive operations.".to_string()),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+
+        Ok(Self {
+            llm_client,
+            security,
+            messages: vec![system_message],
+            accept_all,
+        })
+    }
+
+    pub fn add_user_message(&mut self, prompt: String) {
+        let user_message = ChatMessage {
+            role: "user".to_string(),
+            content: Some(prompt),
+            tool_calls: None,
+            tool_call_id: None,
+            name: None,
+        };
+        self.messages.push(user_message);
+    }
+
     pub async fn run(&mut self) -> Result<()> {
         loop {
             println!();
@@ -81,6 +114,7 @@ impl App {
                                         .await?;
                                 } else {
                                     println!("{}", "× Command rejected".bright_red());
+                                    // In interactive mode, continue instead of returning
                                     return Ok(());
                                 }
                             }

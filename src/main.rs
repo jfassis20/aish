@@ -11,6 +11,10 @@ mod shell;
 
 use cli::app::App;
 use config::{Config, ConfigManager};
+use inquire::Text;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tokio::signal;
 
 #[derive(Parser)]
 #[command(name = "aish")]
@@ -22,6 +26,10 @@ struct Cli {
     /// Automatically accept all commands
     #[arg(long)]
     accept_all: bool,
+
+    /// Interactive mode: keep conversation open and prompt for new inputs
+    #[arg(short, long)]
+    interactive: bool,
 
     /// The prompt to execute
     #[arg(trailing_var_arg = true)]
@@ -59,16 +67,26 @@ async fn main() -> Result<()> {
                 std::process::exit(1);
             }
 
-            let prompt = cli.prompt.join(" ");
-            if prompt.is_empty() {
-                eprintln!("Usage: aish <prompt>");
-                eprintln!("Example: aish edit file ./test.mp4 first 5 seconds and last 3 seconds with ffmpeg");
-                std::process::exit(1);
-            }
-
             let config = config_manager.load_config()?;
-            let mut app = App::new(config, prompt, cli.accept_all)?;
-            app.run().await?;
+            let prompt = cli.prompt.join(" ");
+
+            if cli.interactive {
+                let initial_prompt = if prompt.is_empty() {
+                    None
+                } else {
+                    Some(prompt)
+                };
+                run_interactive_mode(config, cli.accept_all, initial_prompt).await?;
+            } else {
+                if prompt.is_empty() {
+                    eprintln!("Usage: aish <prompt>");
+                    eprintln!("Example: aish edit file ./test.mp4 first 5 seconds and last 3 seconds with ffmpeg");
+                    std::process::exit(1);
+                }
+
+                let mut app = App::new(config, prompt, cli.accept_all)?;
+                app.run().await?;
+            }
         }
     }
 
@@ -245,4 +263,98 @@ fn format_bool(value: bool) -> ColoredString {
     } else {
         "false".bright_red()
     }
+}
+
+async fn run_interactive_mode(
+    config: Config,
+    accept_all: bool,
+    initial_prompt: Option<String>,
+) -> Result<()> {
+    use colored::*;
+
+    println!(
+        "{}",
+        "→ Interactive mode started. Type 'quit' or 'exit' to end, or press Ctrl+C".bright_cyan()
+    );
+    println!();
+
+    // Initialize app
+    let mut app = if let Some(prompt) = initial_prompt.clone() {
+        // If initial prompt provided, use it
+        App::new(config, prompt, accept_all)?
+    } else {
+        // Otherwise start empty
+        App::new_empty(config, accept_all)?
+    };
+
+    // If initial prompt was provided, run it first
+    if initial_prompt.is_some() {
+        app.run().await?;
+    }
+
+    // Set up Ctrl+C handler
+    let ctrl_c_pressed = Arc::new(AtomicBool::new(false));
+    let ctrl_c_flag = ctrl_c_pressed.clone();
+
+    tokio::spawn(async move {
+        if let Ok(()) = signal::ctrl_c().await {
+            ctrl_c_flag.store(true, Ordering::Relaxed);
+        }
+    });
+
+    loop {
+        // Check if Ctrl+C was pressed
+        if ctrl_c_pressed.load(Ordering::Relaxed) {
+            println!();
+            println!("{}", "→ Exiting interactive mode...".bright_cyan());
+            break;
+        }
+
+        let prompt = Text::new("aish>")
+            .with_help_message("Enter your command or 'quit'/'exit' to exit")
+            .prompt();
+
+        match prompt {
+            Ok(p) => {
+                let p = p.trim();
+                if p.is_empty() {
+                    continue;
+                }
+
+                // Check for exit commands
+                let lower = p.to_lowercase();
+                if lower == "quit" || lower == "exit" {
+                    println!();
+                    println!("{}", "→ Exiting interactive mode...".bright_cyan());
+                    break;
+                }
+
+                // Add user message and run
+                app.add_user_message(p.to_string());
+                match app.run().await {
+                    Ok(_) => {
+                        // Continue loop for next prompt
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "{} {}",
+                            "×".bright_red(),
+                            format!("Error: {}", e).bright_red()
+                        );
+                        // Continue loop even on error
+                    }
+                }
+            }
+            Err(_) => {
+                // User cancelled with Esc or similar, or Ctrl+C
+                if ctrl_c_pressed.load(Ordering::Relaxed) {
+                    println!();
+                    println!("{}", "→ Exiting interactive mode...".bright_cyan());
+                }
+                break;
+            }
+        }
+    }
+
+    Ok(())
 }
