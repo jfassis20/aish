@@ -22,9 +22,10 @@ impl App {
         let llm_client = LlmClient::new(&config, api_key);
         let security = SecurityValidator::new(config.clone())?;
 
+        let system_prompt = config_manager.load_system_prompt()?;
         let system_message = ChatMessage {
             role: "system".to_string(),
-            content: Some("You are an AI shell assistant. Help the user with their tasks by executing shell commands and file operations. Always confirm before executing potentially destructive operations.".to_string()),
+            content: Some(system_prompt),
             tool_calls: None,
             tool_call_id: None,
             name: None,
@@ -52,9 +53,10 @@ impl App {
         let llm_client = LlmClient::new(&config, api_key);
         let security = SecurityValidator::new(config.clone())?;
 
+        let system_prompt = config_manager.load_system_prompt()?;
         let system_message = ChatMessage {
             role: "system".to_string(),
-            content: Some("You are an AI shell assistant. Help the user with their tasks by executing shell commands and file operations. Always confirm before executing potentially destructive operations.".to_string()),
+            content: Some(system_prompt),
             tool_calls: None,
             tool_call_id: None,
             name: None,
@@ -83,6 +85,9 @@ impl App {
         loop {
             println!();
             println!("{}", "→ LLM is Thinking...".bright_cyan());
+
+            // Update system message with current CWD before each request
+            self.update_system_message_cwd()?;
 
             let response = match self.llm_client.chat(self.messages.clone()).await {
                 Ok(r) => r,
@@ -259,6 +264,28 @@ impl App {
             name: Some(name.to_string()),
         };
         self.messages.push(tool_result);
+        Ok(())
+    }
+
+    fn update_system_message_cwd(&mut self) -> Result<()> {
+        use crate::workspace_context::WorkspaceContext;
+        use std::path::PathBuf;
+        
+        if let Some(system_msg) = self.messages.first_mut() {
+            if let Some(content) = &mut system_msg.content {
+                // Update CWD
+                let cwd = std::env::current_dir()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|_| "unknown".to_string());
+                *content = content.replace("{{CWD}}", &cwd);
+                
+                // Update workspace flags
+                let workspace_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+                let workspace_context = WorkspaceContext::detect(&workspace_dir);
+                let flags = workspace_context.to_flags_string();
+                *content = content.replace("{{FLAGS}}", &flags);
+            }
+        }
         Ok(())
     }
 }

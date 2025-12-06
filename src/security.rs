@@ -63,11 +63,11 @@ impl SecurityValidator {
 
     pub fn validate_operation(&self, operation: &str) -> Result<()> {
         let allowed = match operation {
-            "fs.makedir" => self.config.security.allowed_operations.fs_makedir,
-            "fs.makefile" => self.config.security.allowed_operations.fs_makefile,
-            "fs.writefile" => self.config.security.allowed_operations.fs_writefile,
-            "fs.readfile" => self.config.security.allowed_operations.fs_readfile,
-            "fs.listdir" => self.config.security.allowed_operations.fs_listdir,
+            "fs_makedir" | "fs.makedir" => self.config.security.allowed_operations.fs_makedir,
+            "fs_makefile" | "fs.makefile" => self.config.security.allowed_operations.fs_makefile,
+            "fs_writefile" | "fs.writefile" => self.config.security.allowed_operations.fs_writefile,
+            "fs_readfile" | "fs.readfile" => self.config.security.allowed_operations.fs_readfile,
+            "fs_listdir" | "fs.listdir" => self.config.security.allowed_operations.fs_listdir,
             "shell" => self.config.security.allowed_operations.shell,
             _ => false,
         };

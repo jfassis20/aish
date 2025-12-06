@@ -8,6 +8,7 @@ mod fs_ops;
 mod llm;
 mod security;
 mod shell;
+mod workspace_context;
 
 use cli::app::App;
 use config::{Config, ConfigManager};
@@ -47,6 +48,10 @@ enum Commands {
         /// Value to set
         value: Option<String>,
     },
+    /// Regenerate system prompt template
+    Regen,
+    /// Show the current system prompt
+    Showsystem,
 }
 
 #[tokio::main]
@@ -60,6 +65,12 @@ async fn main() -> Result<()> {
         }
         Some(Commands::Config { key, value }) => {
             handle_config_command(&config_manager, key, value)?;
+        }
+        Some(Commands::Regen) => {
+            regenerate_system_prompt(&config_manager)?;
+        }
+        Some(Commands::Showsystem) => {
+            show_system_prompt(&config_manager)?;
         }
         None => {
             if !config_manager.is_initialized() {
@@ -263,6 +274,56 @@ fn format_bool(value: bool) -> ColoredString {
     } else {
         "false".bright_red()
     }
+}
+
+fn regenerate_system_prompt(config_manager: &ConfigManager) -> Result<()> {
+    use colored::*;
+
+    let default_prompt = include_str!("../data/system_prompt.txt");
+    let prompt_path = config_manager.get_system_prompt_path();
+
+    std::fs::create_dir_all(prompt_path.parent().unwrap())?;
+    std::fs::write(&prompt_path, default_prompt)?;
+
+    println!(
+        "{} {}",
+        "✓".green(),
+        format!("System prompt regenerated at: {:?}", prompt_path).bright_green()
+    );
+
+    Ok(())
+}
+
+fn show_system_prompt(config_manager: &ConfigManager) -> Result<()> {
+    use colored::*;
+
+    let prompt = config_manager.load_system_prompt()?;
+    let prompt_path = config_manager.get_system_prompt_path();
+
+    println!(
+        "{}",
+        "╔════════════════════════════════════════════════════════╗".bright_black()
+    );
+    println!(
+        "{}",
+        "║              System Prompt                            ║"
+            .bright_white()
+            .bold()
+    );
+    println!(
+        "{}",
+        "╚════════════════════════════════════════════════════════╝".bright_black()
+    );
+    println!();
+    println!("{}", format!("Path: {:?}", prompt_path).bright_cyan());
+    println!();
+    println!("{}", "─".repeat(60).bright_black());
+    println!();
+    println!("{}", prompt);
+    println!();
+    println!("{}", "─".repeat(60).bright_black());
+
+    Ok(())
 }
 
 async fn run_interactive_mode(

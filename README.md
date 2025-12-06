@@ -13,6 +13,17 @@
 - 🤖 **AI-Powered**: Uses LLMs to understand natural language and execute tasks
 - 🔒 **Security First**: Built-in security features with path validation, operation permissions, and whitelist support
 - 🎯 **Interactive**: Beautiful CLI interface with approval prompts for each operation
+- 💬 **Conversation Mode**: Keep conversations open with `-i` flag for continuous interaction
+- 🧠 **Context Aware**: Automatically detects workspace context including:
+  - Programming languages and versions (Node.js, Python, Java, Rust, Go, PHP, Ruby, .NET)
+  - Package managers and build tools
+  - Web and backend frameworks
+  - Testing frameworks and linters
+  - Docker, Kubernetes, and container registries
+  - CI/CD platforms (GitHub Actions, GitLab CI, Jenkins, etc.)
+  - Cloud providers (AWS, GCP, Azure)
+  - Infrastructure as Code tools (Terraform, Pulumi, CDK)
+  - Databases and development tools
 - 🔧 **Flexible**: Supports multiple LLM providers (OpenAI, OpenRouter, Custom)
 - 📁 **File Operations**: Read, write, create directories, and list files
 - 🚀 **Shell Commands**: Execute shell commands with real-time output
@@ -48,7 +59,13 @@ The binary will be available at `target/release/aish`.
    aish "list all Python files in the current directory"
    ```
 
-3. **View configuration:**
+3. **Try interactive mode:**
+   ```bash
+   aish -i "show me disk usage"
+   ```
+   This starts an interactive session where you can continue the conversation.
+
+4. **View configuration:**
    ```bash
    aish config
    ```
@@ -71,6 +88,30 @@ aish "find all .log files older than 30 days and delete them"
 aish --accept-all "run tests and commit if they pass"
 ```
 
+### Interactive Mode
+
+Interactive mode (`-i` or `--interactive`) keeps the conversation open, allowing you to have a continuous dialogue with the AI assistant. The full conversation history is maintained, enabling references to previous commands and results.
+
+```bash
+# Start interactive mode (prompts for commands)
+aish -i
+
+# Start interactive mode with an initial command
+aish -i "list all Python files"
+
+# Interactive mode with auto-approve
+aish -i --accept-all "run tests"
+
+# Exit interactive mode by typing 'quit' or 'exit', or press Ctrl+C
+```
+
+**Features:**
+- Full conversation history maintained across all prompts
+- Type `quit` or `exit` to end the session
+- Press `Ctrl+C` to exit at any time
+- Empty prompts are ignored (allows you to skip)
+- Errors don't terminate the session, allowing you to continue
+
 ### Configuration Commands
 
 ```bash
@@ -83,6 +124,12 @@ aish config llm.model
 # Set a configuration value
 aish config llm.max_tokens 8192
 aish config security.allow_absolute_paths true
+
+# View the current system prompt (with placeholders replaced)
+aish showsystem
+
+# Regenerate the system prompt template
+aish regen
 ```
 
 ## Configuration
@@ -152,7 +199,8 @@ node_modules/*
 ### File Operations
 
 ```bash
-# Create project structure
+# Create pro
+ect structure
 aish "create a Python project with src, tests, and docs folders"
 
 # Read and analyze files
@@ -186,23 +234,6 @@ aish "backup the database, build the Docker image, and push to registry"
 
 # Cleanup
 aish "find and delete all .log files older than 30 days"
-```
-
-## Architecture
-
-```
-aish/
-├── src/
-│   ├── main.rs           # CLI entry point
-│   ├── config.rs         # Configuration management
-│   ├── llm.rs            # LLM client and API communication
-│   ├── shell.rs          # Shell command execution
-│   ├── fs_ops.rs         # File system operations
-│   ├── security.rs       # Security validation
-│   └── tui/
-│       ├── app.rs        # Main application logic
-│       └── init.rs       # Initialization wizard
-└── Cargo.toml
 ```
 
 ## Security Features
