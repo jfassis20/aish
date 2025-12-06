@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::workspace_context::WorkspaceContext;
+use crate::ai::workspace_context::WorkspaceContext;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {

@@ -2,13 +2,12 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
 
+mod ai;
 mod cli;
 mod config;
-mod fs_ops;
-mod llm;
+mod ops;
 mod security;
-mod shell;
-mod workspace_context;
+mod ui;
 
 use cli::app::App;
 use config::{Config, ConfigManager};
@@ -16,6 +15,9 @@ use inquire::Text;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::signal;
+use ui::{
+    render_box, render_section, render_section_footer, render_section_item, render_section_line,
+};
 
 #[derive(Parser)]
 #[command(name = "aish")]
@@ -96,7 +98,10 @@ async fn main() -> Result<()> {
                 }
 
                 let mut app = App::new(config, prompt, cli.accept_all)?;
-                app.run().await?;
+                if let Err(e) = app.run().await {
+                    ui::format_error(&e);
+                    std::process::exit(1);
+                }
             }
         }
     }
@@ -130,141 +135,75 @@ fn handle_config_command(
 }
 
 fn print_config_pretty(config: &Config) {
-    println!(
-        "{}",
-        "╔════════════════════════════════════════════════════════╗".bright_black()
-    );
-    println!(
-        "{}",
-        "║              Configuration Settings                  ║"
-            .bright_white()
-            .bold()
-    );
-    println!(
-        "{}",
-        "╚════════════════════════════════════════════════════════╝".bright_black()
-    );
-    println!();
+    render_box("Configuration Settings", Color::BrightWhite);
 
     // LLM Configuration
-    println!("{}", "┌─ LLM Configuration".bright_blue().bold());
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "provider:".bright_white(),
-        config.llm.provider.bright_yellow()
+    render_section("LLM Configuration", Color::BrightBlue);
+    render_section_line("llm.provider:", config.llm.provider.bright_yellow());
+    render_section_line("llm.api_url:", config.llm.api_url.bright_cyan());
+    render_section_line("llm.model:", config.llm.model.bright_yellow());
+    render_section_line(
+        "llm.max_tokens:",
+        config.llm.max_tokens.to_string().bright_green(),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "api_url:".bright_white(),
-        config.llm.api_url.bright_cyan()
-    );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "model:".bright_white(),
-        config.llm.model.bright_yellow()
-    );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "max_tokens:".bright_white(),
-        config.llm.max_tokens.to_string().bright_green()
-    );
-    println!(
-        "{}",
-        "└─────────────────────────────────────────────────────".bright_black()
-    );
-    println!();
+    render_section_footer();
 
     // Security Configuration
-    println!("{}", "┌─ Security Settings".bright_blue().bold());
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "allow_absolute_paths:".bright_white(),
-        format_bool(config.security.allow_absolute_paths)
+    render_section("Security Settings", Color::BrightBlue);
+    render_section_line(
+        "security.allow_absolute_paths:",
+        format_bool(config.security.allow_absolute_paths),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "allow_config_path_access:".bright_white(),
-        format_bool(config.security.allow_config_path_access)
+    render_section_line(
+        "security.allow_config_path_access:",
+        format_bool(config.security.allow_config_path_access),
     );
-    println!(
-        "{}",
-        "└─────────────────────────────────────────────────────".bright_black()
-    );
-    println!();
+    render_section_footer();
 
     // Blocked Extensions
     if !config.security.blocked_extensions.is_empty() {
-        println!("{}", "┌─ Blocked Extensions".bright_blue().bold());
+        render_section("Blocked Extensions", Color::BrightBlue);
         for ext in &config.security.blocked_extensions {
-            println!("{} {}", "│".bright_black(), ext.bright_red());
+            render_section_item(ext.bright_red());
         }
-        println!(
-            "{}",
-            "└─────────────────────────────────────────────────────".bright_black()
-        );
-        println!();
+        render_section_footer();
     }
 
     // Operation Permissions
-    println!("{}", "┌─ Operation Permissions".bright_blue().bold());
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "fs.makedir:".bright_white(),
-        format_bool(config.security.allowed_operations.fs_makedir)
+    render_section("Operation Permissions", Color::BrightBlue);
+    render_section_line(
+        "fs.makedir:",
+        format_bool(config.security.allowed_operations.fs_makedir),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "fs.makefile:".bright_white(),
-        format_bool(config.security.allowed_operations.fs_makefile)
+    render_section_line(
+        "fs.makefile:",
+        format_bool(config.security.allowed_operations.fs_makefile),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "fs.writefile:".bright_white(),
-        format_bool(config.security.allowed_operations.fs_writefile)
+    render_section_line(
+        "fs.writefile:",
+        format_bool(config.security.allowed_operations.fs_writefile),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "fs.readfile:".bright_white(),
-        format_bool(config.security.allowed_operations.fs_readfile)
+    render_section_line(
+        "fs.readfile:",
+        format_bool(config.security.allowed_operations.fs_readfile),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "fs.listdir:".bright_white(),
-        format_bool(config.security.allowed_operations.fs_listdir)
+    render_section_line(
+        "fs.listdir:",
+        format_bool(config.security.allowed_operations.fs_listdir),
     );
-    println!(
-        "{} {} {}",
-        "│".bright_black(),
-        "shell:".bright_white(),
-        format_bool(config.security.allowed_operations.shell)
+    render_section_line(
+        "security.shell:",
+        format_bool(config.security.allowed_operations.shell),
     );
-    println!(
-        "{}",
-        "└─────────────────────────────────────────────────────".bright_black()
-    );
-    println!();
+    render_section_footer();
 
     // Whitelist
     if !config.whitelist.is_empty() {
-        println!("{}", "┌─ Whitelist".bright_blue().bold());
+        render_section("Whitelist", Color::BrightBlue);
         for item in &config.whitelist {
-            println!("{} {}", "│".bright_black(), item.bright_green());
+            render_section_item(item.bright_green());
         }
-        println!(
-            "{}",
-            "└─────────────────────────────────────────────────────".bright_black()
-        );
+        render_section_footer();
     }
 }
 
@@ -300,21 +239,7 @@ fn show_system_prompt(config_manager: &ConfigManager) -> Result<()> {
     let prompt = config_manager.load_system_prompt()?;
     let prompt_path = config_manager.get_system_prompt_path();
 
-    println!(
-        "{}",
-        "╔════════════════════════════════════════════════════════╗".bright_black()
-    );
-    println!(
-        "{}",
-        "║              System Prompt                            ║"
-            .bright_white()
-            .bold()
-    );
-    println!(
-        "{}",
-        "╚════════════════════════════════════════════════════════╝".bright_black()
-    );
-    println!();
+    render_box("System Prompt", Color::BrightWhite);
     println!("{}", format!("Path: {:?}", prompt_path).bright_cyan());
     println!();
     println!("{}", "─".repeat(60).bright_black());
@@ -397,11 +322,7 @@ async fn run_interactive_mode(
                         // Continue loop for next prompt
                     }
                     Err(e) => {
-                        eprintln!(
-                            "{} {}",
-                            "×".bright_red(),
-                            format!("Error: {}", e).bright_red()
-                        );
+                        ui::format_error(&e);
                         // Continue loop even on error
                     }
                 }

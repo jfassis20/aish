@@ -2,11 +2,11 @@ use anyhow::Result;
 use colored::*;
 use inquire::Select;
 
+use crate::ai::llm::{ChatMessage, LlmClient};
 use crate::config::{Config, ConfigManager};
-use crate::fs_ops::FsOperations;
-use crate::llm::{ChatMessage, LlmClient};
+use crate::ops::{FsOperations, ShellExecutor};
 use crate::security::SecurityValidator;
-use crate::shell::ShellExecutor;
+use crate::ui::{format_error, render_markdown};
 
 pub struct App {
     llm_client: LlmClient,
@@ -92,11 +92,7 @@ impl App {
             let response = match self.llm_client.chat(self.messages.clone()).await {
                 Ok(r) => r,
                 Err(e) => {
-                    eprintln!(
-                        "{} {}",
-                        "×".bright_red(),
-                        format!("Error: {}", e).bright_red()
-                    );
+                    format_error(&e);
                     return Err(e);
                 }
             };
@@ -114,7 +110,21 @@ impl App {
                             if let Some(command) = args.get("command").and_then(|c| c.as_str()) {
                                 let should_execute = self.should_execute("shell", command).await?;
                                 if should_execute {
-                                    let result = self.execute_action("shell", command).await?;
+                                    let result = match self.execute_action("shell", command).await {
+                                        Ok(r) => r,
+                                        Err(e) => {
+                                            let error_msg = format!("Error: {}", e);
+                                            println!("{}", format!("× {}", error_msg).bright_red());
+                                            self.add_tool_result(
+                                                &tool_call.id,
+                                                "shell",
+                                                &error_msg,
+                                            )
+                                            .await?;
+                                            // Continue the loop to let LLM handle the error
+                                            continue;
+                                        }
+                                    };
                                     self.add_tool_result(&tool_call.id, "shell", &result)
                                         .await?;
                                 } else {
@@ -131,8 +141,20 @@ impl App {
                             let should_execute =
                                 self.should_execute(&operation, &operation_desc).await?;
                             if should_execute {
-                                let result =
-                                    self.execute_action(&operation, &args.to_string()).await?;
+                                let result = match self
+                                    .execute_action(&operation, &args.to_string())
+                                    .await
+                                {
+                                    Ok(r) => r,
+                                    Err(e) => {
+                                        let error_msg = format!("Error: {}", e);
+                                        println!("{}", format!("× {}", error_msg).bright_red());
+                                        self.add_tool_result(&tool_call.id, &operation, &error_msg)
+                                            .await?;
+                                        // Continue the loop to let LLM handle the error
+                                        continue;
+                                    }
+                                };
                                 self.add_tool_result(&tool_call.id, &operation, &result)
                                     .await?;
                             } else {
@@ -146,7 +168,9 @@ impl App {
             } else if let Some(content) = &response.content {
                 println!();
                 println!("{}", "→ LLM Response:".bright_cyan());
-                println!("{}", content);
+                println!();
+                render_markdown(content);
+                println!();
                 break;
             }
         }
@@ -268,9 +292,9 @@ impl App {
     }
 
     fn update_system_message_cwd(&mut self) -> Result<()> {
-        use crate::workspace_context::WorkspaceContext;
+        use crate::ai::workspace_context::WorkspaceContext;
         use std::path::PathBuf;
-        
+
         if let Some(system_msg) = self.messages.first_mut() {
             if let Some(content) = &mut system_msg.content {
                 // Update CWD
@@ -278,7 +302,7 @@ impl App {
                     .map(|p| p.to_string_lossy().to_string())
                     .unwrap_or_else(|_| "unknown".to_string());
                 *content = content.replace("{{CWD}}", &cwd);
-                
+
                 // Update workspace flags
                 let workspace_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
                 let workspace_context = WorkspaceContext::detect(&workspace_dir);

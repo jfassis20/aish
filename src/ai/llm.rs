@@ -77,6 +77,14 @@ impl LlmClient {
         let response_text = response.text().await?;
 
         if !status.is_success() {
+            // Try to extract a cleaner error message from JSON response
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&response_text) {
+                if let Some(error_obj) = json.get("error") {
+                    if let Some(message) = error_obj.get("message").and_then(|m| m.as_str()) {
+                        anyhow::bail!("API error ({}): {}", status, message);
+                    }
+                }
+            }
             anyhow::bail!("API error ({}): {}", status, response_text);
         }
 

@@ -2,7 +2,7 @@ use anyhow::Result;
 use inquire::{Confirm, Password, Select, Text};
 
 use crate::config::{Config, ConfigManager};
-use crate::llm::LlmClient;
+use crate::ai::llm::LlmClient;
 
 const PROVIDERS: &[(&str, &str, &str)] = &[
     ("OpenAI", "https://api.openai.com/v1", "gpt-4"),
